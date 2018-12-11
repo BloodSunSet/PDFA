@@ -39,8 +39,7 @@ def main():
                             pen_action()
                         continue
                     for circle in circle_list:
-                        distance = (pos[0] - circle[1][0]) * (pos[0] - circle[1][0]) + \
-                                   (pos[1] - circle[1][1]) * (pos[1] - circle[1][1])
+                        distance = get_distance(pos, circle)
                         if distance < 3600:
                             arrow_start = circle[1]
                             arrow_tail = circle[0]
@@ -165,7 +164,11 @@ def draw_arrow(surface, color, arrow_start, arrow_end, k, volume=7):
 
 
 def mouse_action():
+    return
 
+
+def animation_click():
+    # 写一个按键按下的图片伸缩动画
     return
 
 
