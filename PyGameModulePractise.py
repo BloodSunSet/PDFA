@@ -15,7 +15,6 @@ def main():
     screen.fill(white)
     mouse_rect = mouse_button(screen)  # left, top, width, height
     pen_rect = pen_button(screen)
-    print(mouse_rect, pen_rect)
 
     circle_number = 0
     circle_radius = 30
@@ -29,12 +28,10 @@ def main():
     while 1:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                print(line_list)
                 sys.exit()
             if event.type == pygame.MOUSEBUTTONDOWN:
                 pos = event.__dict__['pos']  # x, y
                 if event.__dict__['button'] == 1:
-                    print(pos[1] + circle_radius)
                     if (pos[1] - circle_radius) < (mouse_rect[1] + mouse_rect[3]):
                         if mouse_rect[0] <= pos[0] <= (mouse_rect[0] + mouse_rect[2]):
                             mouse_action()
@@ -49,7 +46,6 @@ def main():
                             arrow_tail = circle[0]
                             mouse_movement_for_circle = False
                             mouse_movement_for_line = True
-                            print(mouse_movement_for_circle)
                             # TODO:解决除数为零错误
                             break
                     if mouse_movement_for_circle is True:
@@ -134,7 +130,7 @@ def get_k(arrow_start, arrow_end):
     """
 
     k = ((arrow_start[0] - arrow_end[0]) * (arrow_start[0] - arrow_end[0]) +
-         (arrow_start[1] - arrow_end[1]) * (arrow_start[1] - arrow_end[1])) / 30 * 30
+         (arrow_start[1] - arrow_end[1]) * (arrow_start[1] - arrow_end[1])) / (30 * 30)
     k = k ** 0.5
     return k
 
@@ -155,8 +151,6 @@ def draw_arrow(surface, color, arrow_start, arrow_end, k, volume=7):
                    (arrow_end[1] - arrow_start[1]) / k + arrow_start[1]
     arrow_end_ = arrow_end[0] - (arrow_end[0] - arrow_start[0]) / k, \
                  arrow_end[1] - (arrow_end[1] - arrow_start[1]) / k
-    print(arrow_start, arrow_start_, '\n', arrow_end, arrow_end_)
-    pygame.draw.line(surface, color, arrow_start_, arrow_end_)
     k_arrow_head = ((30 * 30 * k * k) / (volume * volume)) ** 0.5
     anchor_point = arrow_end_[0] - (arrow_end_[0] - arrow_start_[0]) / k_arrow_head, \
                    arrow_end_[1] - (arrow_end_[1] - arrow_start_[1]) / k_arrow_head
@@ -164,6 +158,7 @@ def draw_arrow(surface, color, arrow_start, arrow_end, k, volume=7):
                   anchor_point[1] + (arrow_end_[0] - anchor_point[0])
     downer_point = anchor_point[0] - (anchor_point[1] - arrow_end_[1]), \
                    anchor_point[1] - (arrow_end_[0] - anchor_point[0])
+    pygame.draw.line(surface, color, arrow_start_, arrow_end_)
     pygame.draw.line(surface, color, upper_point, arrow_end_)
     pygame.draw.line(surface, color, downer_point, arrow_end_)
     return None
