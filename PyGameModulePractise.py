@@ -16,6 +16,7 @@ def main():
     mouse_rect = mouse_button(screen)  # left, top, width, height
     pen_rect = pen_button(screen)
 
+
     circle_number = 0
     circle_radius = 30
     arrow_start = ()
@@ -24,7 +25,7 @@ def main():
     arrow_text = 'a'
     mouse_movement_for_circle = True
     mouse_movement_for_line = False
-    font = pygame.font.Font(None, 20)
+    font = pygame.font.Font(r'fonts\freesansbold.ttf', 20)
     while 1:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -39,8 +40,7 @@ def main():
                             pen_action()
                         continue
                     for circle in circle_list:
-                        distance = (pos[0] - circle[1][0]) * (pos[0] - circle[1][0]) + \
-                                   (pos[1] - circle[1][1]) * (pos[1] - circle[1][1])
+                        distance = get_distance(pos, circle)
                         if distance < 3600:
                             arrow_start = circle[1]
                             arrow_tail = circle[0]
@@ -165,6 +165,11 @@ def draw_arrow(surface, color, arrow_start, arrow_end, k, volume=7):
 
 
 def mouse_action():
+    return
+
+
+def animation_click():
+    # 写一个按键按下的图片伸缩动画
     return
 
 
