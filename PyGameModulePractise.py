@@ -1,5 +1,6 @@
 import pygame
 import sys
+import time
 
 
 def main():
@@ -13,8 +14,8 @@ def main():
     
     screen = pygame.display.set_mode(size)
     screen.fill(white)
-    mouse_rect = mouse_button(screen)  # left, top, width, height
-    pen_rect = pen_button(screen)
+    mouse_rect = mouse_button(screen)  # left, top, width, height, mouse_button->surface
+    pen_rect = pen_button(screen)  # left, top, width, height, pen_button->surface
 
 
     circle_number = 0
@@ -25,8 +26,29 @@ def main():
     arrow_text = 'a'
     mouse_movement_for_circle = True
     mouse_movement_for_line = False
+
+    change2mouse = False
+    return_mark = False
+    pixel = 2
+
     font = pygame.font.Font(r'fonts\freesansbold.ttf', 20)
+
     while 1:
+        if change2mouse is True:
+            print(pixel)
+            button_rect = mouse_rect[4].get_rect()
+            button_rect.inflate_ip((-pixel, -pixel))
+            screen.blit(mouse_rect[4], button_rect)
+            if return_mark is False:
+                pixel += 1
+                if pixel == 5:
+                    return_mark = True
+            if return_mark is True:
+                pixel -= 1
+                if pixel == 2:
+                    return_mark = False
+                    change2mouse = False
+            time.sleep(0.1)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 sys.exit()
@@ -35,9 +57,10 @@ def main():
                 if event.__dict__['button'] == 1:
                     if (pos[1] - circle_radius) < (mouse_rect[1] + mouse_rect[3]):
                         if mouse_rect[0] <= pos[0] <= (mouse_rect[0] + mouse_rect[2]):
-                            mouse_action()
+                            change2mouse = True
                         if pen_rect[0] <= pos[0] <= (pen_rect[0] + pen_rect[2]):
-                            pen_action()
+                            change2pen = True
+                            # TODO:补全画笔动画
                         continue
                     for circle in circle_list:
                         distance = get_distance(pos, circle)
@@ -75,7 +98,7 @@ def main():
                 mouse_movement_for_line = False
         mouse_movement_for_circle = True
 
-        pygame.display.update()
+        pygame.display.flip()
 
 
 def mouse_button(surface):
@@ -90,7 +113,7 @@ def mouse_button(surface):
     mouse_button_rect.move_ip(0, 0)
     surface.blit(mouse_button, mouse_button_rect)
 
-    return mouse_button_rect.left, mouse_button_rect.top, mouse_button_rect.width, mouse_button_rect.height
+    return mouse_button_rect.left, mouse_button_rect.top, mouse_button_rect.width, mouse_button_rect.height, mouse_button
 
 
 def pen_button(surface):
@@ -105,7 +128,7 @@ def pen_button(surface):
     pen_button_rect.move_ip(33, 0)
     surface.blit(pen_button, pen_button_rect)
 
-    return pen_button_rect.left, pen_button_rect.top, pen_button_rect.width, pen_button_rect.height
+    return pen_button_rect.left, pen_button_rect.top, pen_button_rect.width, pen_button_rect.height, pen_button
 
 
 def get_distance(pos, circle):
@@ -165,11 +188,6 @@ def draw_arrow(surface, color, arrow_start, arrow_end, k, volume=7):
 
 
 def mouse_action():
-    return
-
-
-def animation_click():
-    # 写一个按键按下的图片伸缩动画
     return
 
 
