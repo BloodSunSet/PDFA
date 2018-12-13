@@ -16,7 +16,9 @@ def main():
     screen.fill(white)
     mouse_rect = mouse_button(screen)  # left, top, width, height, mouse_button->surface
     pen_rect = pen_button(screen)  # left, top, width, height, pen_button->surface
-
+    mouse_surface = mouse_rect[4]
+    pen_surface = pen_rect[4]
+    button_surfaces = mouse_surface, pen_surface
 
     circle_number = 0
     circle_radius = 30
@@ -27,18 +29,26 @@ def main():
     mouse_movement_for_circle = True
     mouse_movement_for_line = False
 
+    button_animation = False
     change2mouse = False
+    change2pen = False
+    button_status = change2mouse, change2pen
     return_mark = False
     pixel = 2
+    temp_button_surface = ''
 
     font = pygame.font.Font(r'fonts\freesansbold.ttf', 20)
 
     while 1:
-        if change2mouse is True:
-            print(pixel)
-            button_rect = mouse_rect[4].get_rect()
+        button_status = change2mouse, change2pen
+
+        if button_animation is True:
+            for i in range(button_status.__len__()):
+                if button_status[i] is True:
+                    temp_button_surface = button_surfaces[i]
+            button_rect = temp_button_surface.get_rect()
             button_rect.inflate_ip((-pixel, -pixel))
-            screen.blit(mouse_rect[4], button_rect)
+            screen.blit(temp_button_surface, button_rect)
             if return_mark is False:
                 pixel += 1
                 if pixel == 5:
@@ -47,55 +57,63 @@ def main():
                 pixel -= 1
                 if pixel == 2:
                     return_mark = False
-                    change2mouse = False
+                    button_animation = False
             time.sleep(0.1)
+
         for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                sys.exit()
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                pos = event.__dict__['pos']  # x, y
-                if event.__dict__['button'] == 1:
-                    if (pos[1] - circle_radius) < (mouse_rect[1] + mouse_rect[3]):
-                        if mouse_rect[0] <= pos[0] <= (mouse_rect[0] + mouse_rect[2]):
-                            change2mouse = True
-                        if pen_rect[0] <= pos[0] <= (pen_rect[0] + pen_rect[2]):
-                            change2pen = True
-                            # TODO:补全画笔动画
-                        continue
+                if event.type == pygame.QUIT:
+                    sys.exit()
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    pos = event.__dict__['pos']  # x, y
+                    if event.__dict__['button'] == 1:
+                        if (pos[1] - circle_radius) < (mouse_rect[1] + mouse_rect[3]):
+                            button_animation = True
+                            if mouse_rect[0] <= pos[0] <= (mouse_rect[0] + mouse_rect[2]):
+                                change2mouse = True
+                                change2pen = False
+                            if pen_rect[0] <= pos[0] <= (pen_rect[0] + pen_rect[2]):
+                                change2pen = True
+                                change2mouse = False
+                                # TODO:补全画笔动画
+                            continue
+
+                        if change2mouse is True:
+                            continue
+
+                        for circle in circle_list:
+                            distance = get_distance(pos, circle)
+                            if distance < 3600:
+                                arrow_start = circle[1]
+                                arrow_tail = circle[0]
+                                mouse_movement_for_circle = False
+                                mouse_movement_for_line = True
+                                # TODO:解决除数为零错误
+                                break
+                        if mouse_movement_for_circle is True:
+                            pygame.draw.circle(screen, red, pos, circle_radius, 1)
+                            circle_text = '%s%d' % ('Q', circle_number)
+                            circle_number += 1
+                            text = font.render(circle_text, 0, red)
+                            screen.blit(text, (pos[0] - 10, pos[1] - 5))
+                            circle_list.append((circle_text, pos))
+                    if event.__dict__['button'] == 3:
+                        # TODO:右键菜单
+                        break
+                if event.type == pygame.MOUSEBUTTONUP and mouse_movement_for_line is True:
+                    pos = event.__dict__['pos']
                     for circle in circle_list:
                         distance = get_distance(pos, circle)
-                        if distance < 3600:
-                            arrow_start = circle[1]
-                            arrow_tail = circle[0]
-                            mouse_movement_for_circle = False
-                            mouse_movement_for_line = True
-                            # TODO:解决除数为零错误
+                        if distance < circle_radius * circle_radius:
+                            arrow_end = circle[1]
+                            arrow_head = circle[0]
+                            k = get_k(arrow_start, arrow_end)
+                            if k != 0:
+                                draw_arrow(screen, red, arrow_start, arrow_end, k)
+                                line_list.append((arrow_text, arrow_tail, arrow_head))
+                                arrow_start = ()
+                                arrow_end = ()
                             break
-                    if mouse_movement_for_circle is True:
-                        pygame.draw.circle(screen, red, pos, circle_radius, 1)
-                        circle_text = '%s%d' % ('Q', circle_number)
-                        circle_number += 1
-                        text = font.render(circle_text, 0, red)
-                        screen.blit(text, (pos[0] - 10, pos[1] - 5))
-                        circle_list.append((circle_text, pos))
-                if event.__dict__['button'] == 3:
-                    # TODO:右键菜单
-                    break
-            if event.type == pygame.MOUSEBUTTONUP and mouse_movement_for_line is True:
-                pos = event.__dict__['pos']
-                for circle in circle_list:
-                    distance = get_distance(pos, circle)
-                    if distance < circle_radius * circle_radius:
-                        arrow_end = circle[1]
-                        arrow_head = circle[0]
-                        k = get_k(arrow_start, arrow_end)
-                        if k != 0:
-                            draw_arrow(screen, red, arrow_start, arrow_end, k)
-                            line_list.append((arrow_text, arrow_tail, arrow_head))
-                            arrow_start = ()
-                            arrow_end = ()
-                        break
-                mouse_movement_for_line = False
+                    mouse_movement_for_line = False
         mouse_movement_for_circle = True
 
         pygame.display.flip()
