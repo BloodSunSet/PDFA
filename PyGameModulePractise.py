@@ -9,6 +9,7 @@ def main():
     size = width, height = 1000, 800
     white = 255, 255, 255
     red = 255, 0, 0
+    black = 0, 0, 0
     circle_list = []  # circle_text, circle_center
     line_list = []  # arrow_tail, arrow_head
     
@@ -33,6 +34,13 @@ def main():
     run = False
 
     has_circle_motion = False
+    right_click = False
+    right_menu_info = []
+    has_origin = False
+    origin_color = black
+    final_color = black
+    selected_circle = -1
+    mouse_position = ()
 
     font = pygame.font.Font(r'fonts\freesansbold.ttf', 20)
 
@@ -62,6 +70,10 @@ def main():
  
         """
         flush(screen, circle_list, red, circle_radius, line_list, font, change2mouse, button_rects)
+        if right_click is True:
+            right_menu_info = right_click_menu(screen, mouse_position, origin_color, final_color)
+        if has_origin is True:
+            draw_origin_arrow(screen, (circle_list[selected_circle][1][0] - 30, circle_list[selected_circle][1][1]))
 
         for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -69,6 +81,23 @@ def main():
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     pos = event.__dict__['pos']  # x, y
                     if event.__dict__['button'] == 1:
+                        if right_click is True:
+                            if right_menu_info[0][0] < pos[0] < right_menu_info[0][0] + right_menu_info[1]:
+                                if right_menu_info[0][1] < pos[1] < right_menu_info[0][1] + right_menu_info[2]:
+                                    if right_menu_info[0][1] + 10 < pos[1] < right_menu_info[0][1] + 30:
+                                        origin_color = red
+                                        has_origin = True
+                                    if right_menu_info[0][1] + 30 < pos[1] < right_menu_info[0][1] + 50:
+                                        final_color = red
+                                    if right_menu_info[0][1] + 50 < pos[1] < right_menu_info[0][1] + 70:
+                                        # TODO:change响应
+                                        break
+                                    right_click = False
+                                    # TODO:写菜单响应函数
+                                    break
+                            else:
+                                right_click = False
+
                         if (pos[1] - circle_radius) < 32:
                             if button_rects[0][0] <= pos[0] <= (button_rects[0][0] + button_rects[0][2]):
                                 change2mouse = True
@@ -106,6 +135,26 @@ def main():
                             screen.blit(text, (pos[0] - 10, pos[1] - 5))
                             circle_list.append((circle_text, pos))
                     if event.__dict__['button'] == 3:
+                        if change2mouse is True:
+                            if right_click is True:
+                                if right_menu_info[0][0] < pos[0] < right_menu_info[0][0] + right_menu_info[1]:
+                                    if right_menu_info[0][1] < pos[1] < right_menu_info[0][1] + right_menu_info[2]:
+                                        if right_menu_info[0][1] + 10 < pos[1] < right_menu_info[0][1] + 30:
+                                            origin_color = black
+                                        if right_menu_info[0][1] + 30 < pos[1] < right_menu_info[0][1] + 50:
+                                            final_color = black
+                                        if right_menu_info[0][1] + 50 < pos[1] < right_menu_info[0][1] + 70:
+                                            # TODO:change响应
+                                            break
+                                        # TODO:写菜单响应函数
+                                        break
+
+                            for i, circle in enumerate(circle_list):
+                                distance = get_distance(pos, circle)
+                                if distance < 900:
+                                    right_click = True
+                                    mouse_position = pos
+                                    selected_circle = i
                         # TODO:右键菜单
                         break
                 if event.type == pygame.MOUSEBUTTONUP:
@@ -265,6 +314,39 @@ def draw_arrow(surface, color, arrow_start, arrow_end, k, volume=7):
     return None
 
 
+def draw_origin_arrow(surface, arrow_end):
+    """
+    画一个标记初态的空心箭头
+    :param surface: 箭头所在平面
+    :param arrow_end: 箭头指向状态圆接触点
+    :return: None
+    """
+
+    length = 50
+    right_part_length = 20
+    left_part_height = 20
+    right_part_height = 40
+
+    blue = (0, 0, 255)
+
+    left_x = arrow_end[0] - length
+    left_top_y = arrow_end[1] - left_part_height / 2
+    left_bottom_y = arrow_end[1] + left_part_height / 2
+    right_x = arrow_end[0] - right_part_length
+    right_top_y = arrow_end[1] - left_part_height / 2
+    right_bottom_y = arrow_end[1] + left_part_height / 2
+    triangle_x = right_x
+    triangle_top_y = arrow_end[1] - right_part_height / 2
+    triangle_bottom_y = arrow_end[1] + right_part_height / 2
+
+    point_list = [(left_x, left_top_y), (left_x, left_bottom_y), (right_x, right_bottom_y),
+                  (triangle_x, triangle_bottom_y), arrow_end, (triangle_x, triangle_top_y),
+                  (right_x, right_top_y)]
+
+    pygame.draw.aalines(surface, blue, 1, point_list)
+    return None
+
+
 def flush(screen, circle_list, circle_color, circle_radius, line_list, font, change2mouse, button_rects):
     """
     刷新当前界面
@@ -311,12 +393,30 @@ def flush(screen, circle_list, circle_color, circle_radius, line_list, font, cha
     return
 
 
-def mouse_action():
-    return
+def right_click_menu(surface, pos, origin_color, final_color):
+    """
+    创建一个右键菜单
+    :param surface: 菜单所在平面
+    :param pos: 菜单左上角所在位置
+    :param font: 菜单中文字字体
+    :return: 菜单位置和菜单大小
+    """
 
-
-def pen_action():
-    return
+    width = 100
+    height = 150
+    grey = (225, 225, 225)
+    blue = (0, 0, 255)
+    black = (0, 0, 0)
+    font = pygame.font.Font(r'fonts\freesansbold.ttf', 15)
+    pygame.draw.rect(surface, blue, (pos[0], pos[1], width, height), 3)
+    pygame.draw.rect(surface, grey, (pos[0], pos[1], width, height))
+    set_origin_text = font.render(u'origin', 1, origin_color)
+    set_final_text = font.render(u'final', 1, final_color)
+    set_change_text = font.render(u'change', 1, black)
+    surface.blit(set_origin_text, (pos[0] + 20, pos[1] + 10))
+    surface.blit(set_final_text, (pos[0] + 20, pos[1] + 30))
+    surface.blit(set_change_text, (pos[0] + 20, pos[1] + 50))
+    return pos, width, height
 
 
 if __name__ == '__main__':
