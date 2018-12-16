@@ -14,14 +14,7 @@ def main():
     
     screen = pygame.display.set_mode(size)
     screen.fill(white)
-    button_rects = menu_bar(screen)  # mouse, pen
-    mouse_rect = button_rects[0]  # left, top, width, height, mouse_button->surface
-    pen_rect = button_rects[1]  # left, top, width, height, pen_button->surface
-    run_rect = button_rects[2]  # left, top, width, height, run_button->surface
-    mouse_surface = mouse_rect[4]
-    pen_surface = pen_rect[4]
-    run_surface = run_rect[4]
-    button_surfaces = mouse_surface, pen_surface, run_surface
+    button_rects = menu_bar(screen)  # mouse, pen, run
 
     circle_number = 0
     circle_radius = 30
@@ -36,31 +29,24 @@ def main():
     mouse_movement_for_circle = True
     mouse_movement_for_line = False
 
-    button_animation = False
     change2mouse = False
-    change2pen = False
-    button_status = change2mouse, change2pen
+    run = False
 
     has_circle_motion = False
-    new_mouse_position = ()
-
-    return_mark = False
-    pixel = 2
-    temp_button_surface = ''
-    temp_button_position = 0
 
     font = pygame.font.Font(r'fonts\freesansbold.ttf', 20)
 
     while 1:
-        button_status = change2mouse, change2pen
-
+        # 旧的动画方案
+        """
+        旧的动画方案：
         if button_animation is True:
             for i in range(button_status.__len__()):
                 if button_status[i] is True:
                     temp_button_surface = button_surfaces[i]
                     temp_button_position = i * 32
             button_rect = temp_button_surface.get_rect()
-            button_rect.inflate_ip((-pixel, -pixel))
+            # button_rect.inflate_ip((-pixel, -pixel))
             button_rect.move_ip(temp_button_position, 0)
             screen.blit(temp_button_surface, button_rect)
             if return_mark is False:
@@ -73,6 +59,9 @@ def main():
                     return_mark = False
                     button_animation = False
             time.sleep(0.1)
+ 
+        """
+        flush(screen, circle_list, red, circle_radius, line_list, font, change2mouse, button_rects)
 
         for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -80,15 +69,14 @@ def main():
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     pos = event.__dict__['pos']  # x, y
                     if event.__dict__['button'] == 1:
-                        if (pos[1] - circle_radius) < (mouse_rect[1] + mouse_rect[3]):
-                            button_animation = True
-                            if mouse_rect[0] <= pos[0] <= (mouse_rect[0] + mouse_rect[2]):
+                        if (pos[1] - circle_radius) < 32:
+                            if button_rects[0][0] <= pos[0] <= (button_rects[0][0] + button_rects[0][2]):
                                 change2mouse = True
-                                change2pen = False
-                            if pen_rect[0] <= pos[0] <= (pen_rect[0] + pen_rect[2]):
-                                change2pen = True
+                            if button_rects[1][0] <= pos[0] <= (button_rects[1][0] + button_rects[1][2]):
                                 change2mouse = False
-                                # TODO:完善画笔动画
+                            if button_rects[2][0] <= pos[0] <= (button_rects[2][0] + button_rects[2][2]):
+                                run = True
+                                # TODO:写状态转换表的生成
                             continue
 
                         if change2mouse is True:
@@ -143,15 +131,8 @@ def main():
                     if has_circle_motion is True:
                         new_mouse_position = pygame.mouse.get_pos()
                         circle_list[circle_for_move_i] = (circle_list[circle_for_move_i][0], new_mouse_position)
-                        screen.fill(white)
-                        menu_bar(screen)
-                        for circle in circle_list:
-                            pygame.draw.circle(screen, red, circle[1], circle_radius, 1)
-                            text = font.render(circle[0], 0, red)
-                            screen.blit(text, (circle[1][0] - 10, circle[1][1] - 5))
-                        for line in line_list:
-                            draw_arrow(screen, red, circle_list[line[3]][1], circle_list[line[4]][1],
-                                       get_k(circle_list[line[3]][1], circle_list[line[4]][1]))
+                        flush(screen, circle_list, red, circle_radius, line_list, font, change2mouse, button_rects)
+
         mouse_movement_for_circle = True
 
         pygame.display.flip()
@@ -168,6 +149,19 @@ def menu_bar(surface):
     pen_rect = pen_button(surface)
     run_rect = run_button(surface)
     return mouse_rect, pen_rect, run_rect
+
+
+def menu_bar_clicked(surface):
+    """
+    加载按下按钮时的切换图片
+    :param surface: 按钮所在平面
+    :return: 光标， 铅笔， 运行的surface
+    """
+
+    run_button_clicked = pygame.image.load('images/运行_clicked.png')
+    mouse_button_clicked = pygame.image.load('images/光标_clicked.png')
+    pen_button_clicked = pygame.image.load('images/铅笔_clicked.png')
+    return mouse_button_clicked, pen_button_clicked, run_button_clicked
 
 
 def mouse_button(surface):
@@ -269,6 +263,52 @@ def draw_arrow(surface, color, arrow_start, arrow_end, k, volume=7):
     pygame.draw.line(surface, color, upper_point, arrow_end_)
     pygame.draw.line(surface, color, downer_point, arrow_end_)
     return None
+
+
+def flush(screen, circle_list, circle_color, circle_radius, line_list, font, change2mouse, button_rects):
+    """
+    刷新当前界面
+    :param screen: 当前界面
+    :param circle_list: 状态表
+    :param circle_color: 状态圆颜色
+    :param circle_radius: 状态圆半径
+    :param line_list: 箭头颜色
+    :param font: 状态圆字体
+    :return: None
+    """
+
+    screen.fill((255, 255, 255))
+
+    # left, top, width, height, mouse_button->surface
+    mouse_surface = button_rects[0][4]
+    pen_surface = button_rects[1][4]
+    run_surface = button_rects[2][4]
+    button_clicked_surfaces = menu_bar_clicked(screen)
+    mouse_button_clicked = button_clicked_surfaces[0]
+    pen_button_clicked = button_clicked_surfaces[1]
+    run_button_clicked = button_clicked_surfaces[2]
+    button_mouse_rect = mouse_surface.get_rect()
+    button_mouse_rect.move_ip(0, 0)
+    button_pen_rect = pen_surface.get_rect()
+    button_pen_rect.move_ip(33, 0)
+    button_run_rect = run_surface.get_rect()
+    button_run_rect.move_ip(66, 0)
+    if change2mouse is True:
+        screen.blit(mouse_button_clicked, button_mouse_rect)
+        screen.blit(pen_surface, button_pen_rect)
+    else:
+        screen.blit(mouse_surface, button_mouse_rect)
+        screen.blit(pen_button_clicked, button_pen_rect)
+    screen.blit(run_surface, button_run_rect)
+
+    for circle in circle_list:
+        pygame.draw.circle(screen, circle_color, circle[1], circle_radius, 1)
+        text = font.render(circle[0], 0, circle_color)
+        screen.blit(text, (circle[1][0] - 10, circle[1][1] - 5))
+    for line in line_list:
+        draw_arrow(screen, circle_color, circle_list[line[3]][1], circle_list[line[4]][1],
+                   get_k(circle_list[line[3]][1], circle_list[line[4]][1]))
+    return
 
 
 def mouse_action():
