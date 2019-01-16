@@ -1,6 +1,6 @@
 import pygame
 import sys
-import time
+import os
 
 
 def main():
@@ -10,7 +10,7 @@ def main():
     white = 255, 255, 255
     red = 255, 0, 0
     black = 0, 0, 0
-    circle_list = []  # circle_text, circle_center
+    circle_list = []  # circle_text, circle_center, circle_number
     line_list = []  # arrow_tail, arrow_head
     
     screen = pygame.display.set_mode(size)
@@ -37,6 +37,8 @@ def main():
     right_click = False
     right_menu_info = []
     has_origin = False
+    origin_circle = -1
+    final_circles = []
     origin_color = black
     final_color = black
     selected_circle = -1
@@ -69,118 +71,120 @@ def main():
             time.sleep(0.1)
  
         """
-        flush(screen, circle_list, red, circle_radius, line_list, font, change2mouse, button_rects)
+        flush(screen, circle_list, red, circle_radius, line_list, font, change2mouse, button_rects, has_origin,
+              origin_circle, final_circles)
         if right_click is True:
+            origin_color = red if circle_list[selected_circle][2] == origin_circle else black
+            final_color = red if circle_list[selected_circle][2] in final_circles else black
             right_menu_info = right_click_menu(screen, mouse_position, origin_color, final_color)
-        if has_origin is True:
-            draw_origin_arrow(screen, (circle_list[selected_circle][1][0] - 30, circle_list[selected_circle][1][1]))
 
         for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    sys.exit()
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    pos = event.__dict__['pos']  # x, y
-                    if event.__dict__['button'] == 1:
-                        if right_click is True:
-                            if right_menu_info[0][0] < pos[0] < right_menu_info[0][0] + right_menu_info[1]:
-                                if right_menu_info[0][1] < pos[1] < right_menu_info[0][1] + right_menu_info[2]:
-                                    if right_menu_info[0][1] + 10 < pos[1] < right_menu_info[0][1] + 30:
-                                        origin_color = red
+            if event.type == pygame.QUIT:
+                os.system("SaveDialog.py")
+                sys.exit()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                pos = event.__dict__['pos']  # x, y
+                if event.__dict__['button'] == 1:
+                    if right_click is True:
+                        if right_menu_info[0][0] < pos[0] < right_menu_info[0][0] + right_menu_info[1]:
+                            if right_menu_info[0][1] < pos[1] < right_menu_info[0][1] + right_menu_info[2]:
+                                if right_menu_info[0][1] + 10 < pos[1] < right_menu_info[0][1] + 30:  # 点击了origin
+                                    if has_origin is False:
+                                        origin_circle = circle_list[selected_circle][2]
                                         has_origin = True
-                                    if right_menu_info[0][1] + 30 < pos[1] < right_menu_info[0][1] + 50:
-                                        final_color = red
-                                    if right_menu_info[0][1] + 50 < pos[1] < right_menu_info[0][1] + 70:
-                                        # TODO:change响应
-                                        break
-                                    right_click = False
-                                    # TODO:写菜单响应函数
-                                    break
-                            else:
-                                right_click = False
-
-                        if (pos[1] - circle_radius) < 32:
-                            if button_rects[0][0] <= pos[0] <= (button_rects[0][0] + button_rects[0][2]):
-                                change2mouse = True
-                            if button_rects[1][0] <= pos[0] <= (button_rects[1][0] + button_rects[1][2]):
-                                change2mouse = False
-                            if button_rects[2][0] <= pos[0] <= (button_rects[2][0] + button_rects[2][2]):
-                                run = True
-                                # TODO:写状态转换表的生成
-                            continue
-
-                        if change2mouse is True:
-                            for i, circle in enumerate(circle_list):
-                                distance = get_distance(pos, circle)
-                                if distance < 900:
-                                    circle_for_move_i = i
-                                    has_circle_motion = True
-                                    break
-                            continue
-
-                        for i, circle in enumerate(circle_list):
-                            distance = get_distance(pos, circle)
-                            if distance < 3600:
-                                mouse_movement_for_circle = False
-                                if distance < 900:
-                                    arrow_start = circle[1]
-                                    arrow_tail = circle[0]
-                                    arrow_tail_i = i
-                                    mouse_movement_for_line = True
-                                break
-                        if mouse_movement_for_circle is True:
-                            pygame.draw.circle(screen, red, pos, circle_radius, 1)
-                            circle_text = '%s%d' % ('Q', circle_number)
-                            circle_number += 1
-                            text = font.render(circle_text, 0, red)
-                            screen.blit(text, (pos[0] - 10, pos[1] - 5))
-                            circle_list.append((circle_text, pos))
-                    if event.__dict__['button'] == 3:
-                        if change2mouse is True:
-                            if right_click is True:
-                                if right_menu_info[0][0] < pos[0] < right_menu_info[0][0] + right_menu_info[1]:
-                                    if right_menu_info[0][1] < pos[1] < right_menu_info[0][1] + right_menu_info[2]:
-                                        if right_menu_info[0][1] + 10 < pos[1] < right_menu_info[0][1] + 30:
-                                            origin_color = black
-                                        if right_menu_info[0][1] + 30 < pos[1] < right_menu_info[0][1] + 50:
-                                            final_color = black
-                                        if right_menu_info[0][1] + 50 < pos[1] < right_menu_info[0][1] + 70:
-                                            # TODO:change响应
+                                    elif has_origin is True:
+                                        if selected_circle == origin_circle:
+                                            has_origin = False
+                                            origin_circle = -1
+                                        else:
+                                            # TODO:警告不可添加多个初态，应先取消之前的初态
                                             break
-                                        # TODO:写菜单响应函数
-                                        break
+                                if right_menu_info[0][1] + 30 < pos[1] < right_menu_info[0][1] + 50:  # 点击了final
+                                    if circle_list[selected_circle][2] in final_circles:
+                                        final_circles.remove(circle_list[selected_circle][2])
+                                    else:
+                                        final_circles.append(circle_list[selected_circle][2])
+                                if right_menu_info[0][1] + 50 < pos[1] < right_menu_info[0][1] + 70:  # 点击了change
+                                    # TODO:change响应
+                                    os.system("SaveDialog.py")
+                                    break
+                                right_click = False
+                                # TODO:写菜单响应函数
+                                break
+                        else:
+                            right_click = False
 
-                            for i, circle in enumerate(circle_list):
-                                distance = get_distance(pos, circle)
-                                if distance < 900:
-                                    right_click = True
-                                    mouse_position = pos
-                                    selected_circle = i
-                        # TODO:右键菜单
-                        break
-                if event.type == pygame.MOUSEBUTTONUP:
-                    if mouse_movement_for_line is True:
-                        pos = event.__dict__['pos']
+                    if (pos[1] - circle_radius) < 32:
+                        if button_rects[0][0] <= pos[0] <= (button_rects[0][0] + button_rects[0][2]):
+                            change2mouse = True
+                        if button_rects[1][0] <= pos[0] <= (button_rects[1][0] + button_rects[1][2]):
+                            change2mouse = False
+                        if button_rects[2][0] <= pos[0] <= (button_rects[2][0] + button_rects[2][2]):
+                            run = True
+                            # TODO:写状态转换表的生成
+                        continue
+
+                    if change2mouse is True:
                         for i, circle in enumerate(circle_list):
                             distance = get_distance(pos, circle)
-                            if distance < circle_radius * circle_radius:
-                                arrow_end = circle[1]
-                                arrow_head = circle[0]
-                                arrow_head_i = i
-                                k = get_k(arrow_start, arrow_end)
-                                if k != 0:
-                                    draw_arrow(screen, red, arrow_start, arrow_end, k)
-                                    line_list.append((arrow_text, arrow_tail, arrow_head, arrow_tail_i, arrow_head_i))
-                                    arrow_start = ()
-                                    arrow_end = ()
+                            if distance < 900:
+                                circle_for_move_i = i
+                                has_circle_motion = True
                                 break
-                        mouse_movement_for_line = False
-                    if has_circle_motion is True:
-                        has_circle_motion = False
-                if event.type == pygame.MOUSEMOTION:
-                    if has_circle_motion is True:
-                        new_mouse_position = pygame.mouse.get_pos()
-                        circle_list[circle_for_move_i] = (circle_list[circle_for_move_i][0], new_mouse_position)
-                        flush(screen, circle_list, red, circle_radius, line_list, font, change2mouse, button_rects)
+                        continue
+
+                    for i, circle in enumerate(circle_list):
+                        distance = get_distance(pos, circle)
+                        if distance < 3600:
+                            mouse_movement_for_circle = False
+                            if distance < 900:
+                                arrow_start = circle[1]
+                                arrow_tail = circle[0]
+                                arrow_tail_i = i
+                                mouse_movement_for_line = True
+                            break
+                    if mouse_movement_for_circle is True:
+                        pygame.draw.circle(screen, red, pos, circle_radius, 1)
+                        circle_text = '%s%d' % ('Q', circle_number)
+                        text = font.render(circle_text, 0, red)
+                        screen.blit(text, (pos[0] - 10, pos[1] - 5))
+                        circle_list.append((circle_text, pos, circle_number))
+                        circle_number = circle_list[circle_list.__len__() - 1][2] + 1
+                if event.__dict__['button'] == 3:
+                    if change2mouse is True:
+                        for i, circle in enumerate(circle_list):
+                            distance = get_distance(pos, circle)
+                            if distance < 900:
+                                right_click = True
+                                mouse_position = pos
+                                selected_circle = i
+                    break
+            if event.type == pygame.MOUSEBUTTONUP:
+                if mouse_movement_for_line is True:
+                    pos = event.__dict__['pos']
+                    for i, circle in enumerate(circle_list):
+                        distance = get_distance(pos, circle)
+                        if distance < circle_radius * circle_radius:
+                            arrow_end = circle[1]
+                            arrow_head = circle[0]
+                            arrow_head_i = i
+                            k = get_k(arrow_start, arrow_end)
+                            if k != 0:
+                                draw_arrow(screen, red, arrow_start, arrow_end, k)
+                                line_list.append((arrow_text, arrow_tail, arrow_head, arrow_tail_i, arrow_head_i))
+                                arrow_start = ()
+                                arrow_end = ()
+                            break
+                    mouse_movement_for_line = False
+                if has_circle_motion is True:
+                    has_circle_motion = False
+            if event.type == pygame.MOUSEMOTION:
+                if has_circle_motion is True:
+                    new_mouse_position = pygame.mouse.get_pos()
+                    circle_list[circle_for_move_i] = (circle_list[circle_for_move_i][0], new_mouse_position,
+                                                      circle_list[circle_for_move_i][2])
+                    flush(screen, circle_list, red, circle_radius, line_list, font, change2mouse, button_rects,
+                          has_origin, origin_circle, final_circles)
 
         mouse_movement_for_circle = True
 
@@ -347,7 +351,8 @@ def draw_origin_arrow(surface, arrow_end):
     return None
 
 
-def flush(screen, circle_list, circle_color, circle_radius, line_list, font, change2mouse, button_rects):
+def flush(screen, circle_list, circle_color, circle_radius, line_list, font, change2mouse, button_rects,
+          has_origin, origin_circle, final_circles):
     """
     刷新当前界面
     :param screen: 当前界面
@@ -356,6 +361,11 @@ def flush(screen, circle_list, circle_color, circle_radius, line_list, font, cha
     :param circle_radius: 状态圆半径
     :param line_list: 箭头颜色
     :param font: 状态圆字体
+    :param change2mouse: 是否为编辑模式
+    :param button_rects: 功能按键栏
+    :param has_origin: 是否有初态
+    :param origin_circle: 初态圆id
+    :param final_circles: 终态圆集
     :return: None
     """
 
@@ -387,9 +397,16 @@ def flush(screen, circle_list, circle_color, circle_radius, line_list, font, cha
         pygame.draw.circle(screen, circle_color, circle[1], circle_radius, 1)
         text = font.render(circle[0], 0, circle_color)
         screen.blit(text, (circle[1][0] - 10, circle[1][1] - 5))
+        # print(circle)
+        if has_origin is True and origin_circle == circle[2]:
+            draw_origin_arrow(screen, (circle[1][0] - 30, circle[1][1]))
+        if final_circles.__len__() > 0:
+            if circle[2] in final_circles:
+                pygame.draw.circle(screen, circle_color, circle[1], circle_radius-3, 1)
     for line in line_list:
         draw_arrow(screen, circle_color, circle_list[line[3]][1], circle_list[line[4]][1],
                    get_k(circle_list[line[3]][1], circle_list[line[4]][1]))
+
     return
 
 
@@ -398,7 +415,8 @@ def right_click_menu(surface, pos, origin_color, final_color):
     创建一个右键菜单
     :param surface: 菜单所在平面
     :param pos: 菜单左上角所在位置
-    :param font: 菜单中文字字体
+    :param origin_color: 初态状态颜色
+    :param final_color: 终态状态颜色
     :return: 菜单位置和菜单大小
     """
 
