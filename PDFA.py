@@ -1,10 +1,12 @@
 import pygame
 import tkinter as tk
 from tkinter.filedialog import *
+from tkinter import ttk
 from tkinter import *
 import os
 
 root = tk.Tk()
+root.title("自动机的状态转换图表示")
 embed = tk.Frame(root, width=500, height=500)  # creates embed frame for pygame window
 embed.grid(columnspan=600, rowspan=500)  # Adds grid
 embed.pack(side=LEFT)  # packs window to the left
@@ -264,15 +266,22 @@ def flush(screen, circle_list, circle_color, circle_radius, line_list, font, cha
         pygame.draw.circle(screen, circle_color, circle[1], circle_radius, 1)
         text = font.render(circle[0], 0, circle_color)
         screen.blit(text, (circle[1][0] - 10, circle[1][1] - 5))
-        # print(circle)
         if has_origin is True and origin_circle == circle[2]:
             draw_origin_arrow(screen, (circle[1][0] - 30, circle[1][1]))
         if final_circles.__len__() > 0:
             if circle[2] in final_circles:
                 pygame.draw.circle(screen, circle_color, circle[1], circle_radius - 3, 1)
     for line in line_list:
+        arrow_tail_index = arrow_head_index = 0
+        for i, circle in enumerate(circle_list):
+            if line[3] == circle[2]:
+                arrow_tail_index = i
+            if line[4] == circle[2]:
+                arrow_head_index = i
         draw_arrow(screen, circle_color, circle_list[line[3]][1], circle_list[line[4]][1],
-                   get_k(circle_list[line[3]][1], circle_list[line[4]][1]))
+                   get_k(circle_list[arrow_tail_index][1], circle_list[arrow_head_index][1]))
+
+    root.update()
 
     return
 
@@ -306,29 +315,102 @@ def right_click_menu(surface, pos, origin_color, final_color):
 
 def load_file():
     filename = tk.filedialog.askopenfilename(initialdir="G:/python/PDFA/PDFA/saves")
+    content = []
     if filename:
         with open(filename, 'r') as f:
             temp_content = f.readlines()
-            content = []
             for line in temp_content:
                 line = line.strip()
                 content.append(line)
+
+            circle_list = []
+            line_list = []
+            final_circles = []
+
+            origin_index = content.index('###origin_circle###')
+            final_index = content.index('###final_circles###')
+            line_index = content.index('###line_list###')
+            circle_index = content.index('###circle_list###')
+            origin_circle = content[origin_index + 1: final_index]
+            final_temp_circles = content[final_index + 1: circle_index]
+            circles = content[circle_index + 1: line_index]
+            lines = content[line_index + 1:]
+
+            for final_circle in final_temp_circles:
+                final_circles.append(int(final_circle))
+            for circle in circles:
+                temp_circle_list = circle.split(',')
+                circle_list.append((temp_circle_list[0], (int(temp_circle_list[1]), int(temp_circle_list[2])),
+                                    int(temp_circle_list[3])))
+            for line in lines:
+                temp_line_list = line.split(',')
+                line_list.append((temp_line_list[0], temp_line_list[1], temp_line_list[2],
+                                  int(temp_line_list[3]), int(temp_line_list[4])))
+
+            return origin_circle, final_circles, circle_list, line_list
+    else:
+        return ''
 
 
 def save_file():
     file_name = tk.filedialog.asksaveasfilename(initialdir="G:/python/PDFA/PDFA/saves")
     if file_name:
         with open(file_name, 'w') as f:
-            f.write('###circle_list###')
+            f.write('###origin_circle###\n')
+            f.write(str(origin_circle))
+            f.write('\n')
+            f.write('###final_circles###\n')
+            for final_circle in final_circles:
+                f.write(str(final_circle))
+                f.write('\n')
+            f.write('###circle_list###\n')
             for circle in circle_list:
-                print(circle)
-                circle_str = ''.join(circle)
-                print(circle_str)
-                f.write(circle_str)
-            f.write('###line_list###')
+                f.write(circle[0])
+                f.write(',')
+                f.write(str(circle[1][0]))
+                f.write(',')
+                f.write(str(circle[1][1]))
+                f.write(',')
+                f.write(str(circle[2]))
+                f.write('\n')
+            f.write('###line_list###\n')
             for line in line_list:
-                line_str = ''.join(line)
-                f.write(line_str)
+                f.write(line[0])
+                f.write(',')
+                f.write(line[1])
+                f.write(',')
+                f.write(line[2])
+                f.write(',')
+                f.write(str(line[3]))
+                f.write(',')
+                f.write(str(line[4]))
+                f.write('\n')
+
+
+def create_status_table():
+    top = Toplevel()
+    top.title(u'状态转换表')
+    tree = ttk.Treeview(top)  # 表格
+    tree["columns"] = ("a", "final")
+    tree.column("a", width=70)  # 表示列,不显示
+    tree.column("final", width=70)
+
+    tree.heading("a", text="a")  # 显示表头
+    tree.heading("final", text=u"终态")
+
+    tree_data = []
+    for circle in circle_list:
+        tree_data.append([circle[0], '', circle[2]])
+    for line in line_list:
+        for row in tree_data:
+            if line[1] == row[0]:
+                row[1] += line[2]
+    for i, row in enumerate(tree_data):
+        text = row[0] if row[2] != origin_circle else row[0] + '->'
+        values = (row[1], "0") if row[2] not in final_circles else (row[1], "1")
+        tree.insert("", i, text=text, values=values)
+
+    tree.pack()
 
 
 screen = pygame.display.set_mode((500, 500))
@@ -338,7 +420,7 @@ white = 255, 255, 255
 red = 255, 0, 0
 black = 0, 0, 0
 circle_list = []  # circle_text, circle_center, circle_number
-line_list = []  # arrow_tail, arrow_head
+line_list = []  # arrow_text, arrow_tail, arrow_head, arrow_tail_i, arrow_head_i
 
 screen.fill(white)
 button_rects = menu_bar(screen)  # mouse, pen, run, load, save
@@ -353,7 +435,7 @@ arrow_head = ''
 arrow_tail_i = 0
 arrow_head_i = 0
 arrow_text = 'a'
-mouse_movement_for_circle = True
+mouse_movement_for_draw_circle = True
 mouse_movement_for_line = False
 
 change2mouse = False
@@ -374,14 +456,13 @@ font = pygame.font.Font(r'fonts\freesansbold.ttf', 20)
 pygame.display.update()
 
 
-def draw():
-    pygame.draw.circle(screen, (0, 0, 0), (250, 250), 125)
-    pygame.display.update()
+def on_closing():
+    root.destroy()
 
 
-# button1 = Button(buttonwin, text='Draw',  command=draw)
-# button1.pack(side=LEFT)
 root.update()
+root.protocol("WM_DELETE_WINDOW", on_closing)
+
 while True:
     # 旧的动画方案
     """
@@ -415,9 +496,8 @@ while True:
         right_menu_info = right_click_menu(screen, mouse_position, origin_color, final_color)
 
     for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            os.system("SaveDialog.py")
-            sys.exit()
+        # if event.type == pygame.QUIT:
+        #     sys.exit()
         if event.type == pygame.MOUSEBUTTONDOWN:
             pos = event.__dict__['pos']  # x, y
             if event.__dict__['button'] == 1:
@@ -442,7 +522,6 @@ while True:
                                     final_circles.append(circle_list[selected_circle][2])
                             if right_menu_info[0][1] + 50 < pos[1] < right_menu_info[0][1] + 70:  # 点击了change
                                 # TODO:change响应
-                                os.system("SaveDialog.py")
                                 break
                             right_click = False
                             # TODO:写菜单响应函数
@@ -450,20 +529,24 @@ while True:
                     else:
                         right_click = False
 
-                if (pos[1] - circle_radius) < 32:
-                    print(button_rects)
-                    print(pos[0])
+                if (pos[1] - circle_radius) < 32:  # 菜单栏
                     if button_rects[0][0] <= pos[0] <= (button_rects[0][0] + button_rects[0][2]):
                         change2mouse = True
                     if button_rects[1][0] <= pos[0] <= (button_rects[1][0] + button_rects[1][2]):
                         change2mouse = False
                     if button_rects[2][0] <= pos[0] <= (button_rects[2][0] + button_rects[2][2]):
                         run = True
-                        # TODO:写状态转换表的生成
+                        create_status_table()
                     if button_rects[3][0] <= pos[0] <= (button_rects[3][0] + button_rects[3][2]):
-                        load_file()
+                        new_lists = load_file()
+                        if new_lists != '':
+                            if new_lists[0][0] != '':
+                                origin_circle = int(new_lists[0][0])
+                                has_origin = True
+                            final_circles = new_lists[1]
+                            circle_list = new_lists[2]
+                            line_list = new_lists[3]
                     if button_rects[4][0] <= pos[0] <= (button_rects[4][0] + button_rects[4][2]):
-                        print()
                         save_file()
                     continue
 
@@ -479,20 +562,23 @@ while True:
                 for i, circle in enumerate(circle_list):
                     distance = get_distance(pos, circle)
                     if distance < 3600:
-                        mouse_movement_for_circle = False
+                        mouse_movement_for_draw_circle = False
                         if distance < 900:
                             arrow_start = circle[1]
                             arrow_tail = circle[0]
-                            arrow_tail_i = i
+                            arrow_tail_i = circle_list[i][2]
                             mouse_movement_for_line = True
                         break
-                if mouse_movement_for_circle is True:
+                if mouse_movement_for_draw_circle is True:
                     pygame.draw.circle(screen, red, pos, circle_radius, 1)
+                    if circle_list.__len__() == 0:
+                        circle_number = 0
+                    else:
+                        circle_number = circle_list[circle_list.__len__() - 1][2] + 1
                     circle_text = '%s%d' % ('Q', circle_number)
                     text = font.render(circle_text, 0, red)
                     screen.blit(text, (pos[0] - 10, pos[1] - 5))
                     circle_list.append((circle_text, pos, circle_number))
-                    circle_number = circle_list[circle_list.__len__() - 1][2] + 1
             if event.__dict__['button'] == 3:
                 if change2mouse is True:
                     for i, circle in enumerate(circle_list):
@@ -510,7 +596,7 @@ while True:
                     if distance < circle_radius * circle_radius:
                         arrow_end = circle[1]
                         arrow_head = circle[0]
-                        arrow_head_i = i
+                        arrow_head_i = circle_list[i][2]
                         k = get_k(arrow_start, arrow_end)
                         if k != 0:
                             draw_arrow(screen, red, arrow_start, arrow_end, k)
@@ -529,8 +615,6 @@ while True:
                 flush(screen, circle_list, red, circle_radius, line_list, font, change2mouse, button_rects,
                       has_origin, origin_circle, final_circles)
 
-    mouse_movement_for_circle = True
+    mouse_movement_for_draw_circle = True
 
     pygame.display.flip()
-
-    root.update()
